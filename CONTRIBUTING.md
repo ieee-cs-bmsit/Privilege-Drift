@@ -70,7 +70,7 @@ We welcome feature requests! Please open an issue with:
 **Do not open public issues for security vulnerabilities.**
 
 Instead:
-- Email: security@privilegedrift.org
+- Email: ieee_cs@bmsit.in
 - Include detailed description
 - Provide proof of concept if possible
 - Allow time for fix before disclosure

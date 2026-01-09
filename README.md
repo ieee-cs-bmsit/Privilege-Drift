@@ -260,9 +260,10 @@ This tool is in **early beta (v0.1)**. Use in production environments at your ow
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/privilege-drift/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/privilege-drift/discussions)
-- **Security**: For security vulnerabilities, please email security@privilegedrift.org
+- **Contact**: ieee_cs@bmsit.in
+- **Issues**: [GitHub Issues](https://github.com/ieee-cs-bmsit/privilege-drift/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ieee-cs-bmsit/privilege-drift/discussions)
+- **Security**: For security vulnerabilities, please email ieee_cs@bmsit.in
 
 ## 🎯 Threat Model
 
