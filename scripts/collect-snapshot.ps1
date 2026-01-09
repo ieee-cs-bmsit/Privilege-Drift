@@ -14,21 +14,22 @@ $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
 $snapshotId = Get-Date -Format "yyyyMMdd-HHmmss"
 $hostname = $env:COMPUTERNAME
 
-Write-Host "🔐 Privilege Drift - Snapshot Collection" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "⏰ Timestamp: $timestamp"
-Write-Host "💻 Hostname: $hostname`n"
+Write-Host "[*] Privilege Drift - Snapshot Collection" -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "[*] Timestamp: $timestamp"
+Write-Host "[*] Hostname: $hostname"
+Write-Host ""
 
 # Initialize snapshot object
 $snapshot = @{
-    timestamp = $timestamp
-    hostname = $hostname
-    snapshot_id = $snapshotId
-    admin_users = @()
+    timestamp          = $timestamp
+    hostname           = $hostname
+    snapshot_id        = $snapshotId
+    admin_users        = @()
     elevated_processes = @()
-    scheduled_tasks = @()
-    services = @()
-    startup_items = @()
+    scheduled_tasks    = @()
+    services           = @()
+    startup_items      = @()
 }
 
 # Function to get file hash safely
@@ -39,7 +40,8 @@ function Get-SafeFileHash {
             $hash = Get-FileHash -Path $Path -Algorithm SHA256 -ErrorAction SilentlyContinue
             return $hash.Hash
         }
-    } catch {}
+    }
+    catch {}
     return "N/A"
 }
 
@@ -51,12 +53,13 @@ function Test-FileSigned {
             $sig = Get-AuthenticodeSignature -FilePath $Path -ErrorAction SilentlyContinue
             return ($sig.Status -eq 'Valid')
         }
-    } catch {}
+    }
+    catch {}
     return $false
 }
 
 # 1. Collect Admin Users
-Write-Host "📋 Collecting admin users..." -ForegroundColor Yellow
+Write-Host "[+] Collecting admin users..." -ForegroundColor Yellow
 try {
     $adminGroup = Get-LocalGroupMember -Group "Administrators" -ErrorAction SilentlyContinue
     foreach ($member in $adminGroup) {
@@ -67,23 +70,25 @@ try {
                 if ($user.LastLogon) {
                     $lastLogin = $user.LastLogon.ToString("yyyy-MM-ddTHH:mm:ssZ")
                 }
-            } catch {}
+            }
+            catch {}
         }
         
         $snapshot.admin_users += @{
-            username = $member.Name
-            sid = $member.SID.Value
+            username     = $member.Name
+            sid          = $member.SID.Value
             object_class = $member.ObjectClass
-            last_login = $lastLogin
+            last_login   = $lastLogin
         }
     }
-    Write-Host "   ✓ Found $($snapshot.admin_users.Count) admin users" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Error collecting admin users: $_" -ForegroundColor Red
+    Write-Host "    [OK] Found $($snapshot.admin_users.Count) admin users" -ForegroundColor Green
+}
+catch {
+    Write-Host "    [ERROR] Error collecting admin users: $_" -ForegroundColor Red
 }
 
 # 2. Collect Elevated Processes (running with high privileges)
-Write-Host "📋 Collecting elevated processes..." -ForegroundColor Yellow
+Write-Host "[+] Collecting elevated processes..." -ForegroundColor Yellow
 try {
     $processes = Get-Process | Where-Object { $_.Path } | Select-Object -Unique Name, Path
     $elevatedProcesses = @()
@@ -101,32 +106,34 @@ try {
                         break
                     }
                 }
-            } catch {}
+            }
+            catch {}
             
             if ($isElevated) {
                 $hash = Get-SafeFileHash -Path $proc.Path
                 $signed = Test-FileSigned -Path $proc.Path
                 
                 $elevatedProcesses += @{
-                    name = $proc.Name
-                    path = $proc.Path
+                    name            = $proc.Name
+                    path            = $proc.Path
                     privilege_level = "Elevated"
-                    hash = "sha256:$hash"
-                    signed = $signed
-                    first_seen = $timestamp
+                    hash            = "sha256:$hash"
+                    signed          = $signed
+                    first_seen      = $timestamp
                 }
             }
         }
     }
     
     $snapshot.elevated_processes = $elevatedProcesses
-    Write-Host "   ✓ Found $($elevatedProcesses.Count) elevated processes" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Error collecting processes: $_" -ForegroundColor Red
+    Write-Host "    [OK] Found $($elevatedProcesses.Count) elevated processes" -ForegroundColor Green
+}
+catch {
+    Write-Host "    [ERROR] Error collecting processes: $_" -ForegroundColor Red
 }
 
 # 3. Collect Scheduled Tasks with elevated privileges
-Write-Host "📋 Collecting scheduled tasks..." -ForegroundColor Yellow
+Write-Host "[+] Collecting scheduled tasks..." -ForegroundColor Yellow
 try {
     $tasks = Get-ScheduledTask | Where-Object { 
         $_.Principal.UserId -match "SYSTEM|Administrators" -or 
@@ -152,23 +159,24 @@ try {
         }
         
         $snapshot.scheduled_tasks += @{
-            name = $task.TaskName
-            path = $task.TaskPath
-            run_as = $task.Principal.UserId
+            name      = $task.TaskName
+            path      = $task.TaskPath
+            run_as    = $task.Principal.UserId
             run_level = $task.Principal.RunLevel
-            command = $action
-            created = $created
-            trigger = $trigger
-            enabled = $task.State -eq "Ready"
+            command   = $action
+            created   = $created
+            trigger   = $trigger
+            enabled   = $task.State -eq "Ready"
         }
     }
-    Write-Host "   ✓ Found $($snapshot.scheduled_tasks.Count) elevated tasks" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Error collecting scheduled tasks: $_" -ForegroundColor Red
+    Write-Host "    [OK] Found $($snapshot.scheduled_tasks.Count) elevated tasks" -ForegroundColor Green
+}
+catch {
+    Write-Host "    [ERROR] Error collecting scheduled tasks: $_" -ForegroundColor Red
 }
 
 # 4. Collect Services running with high privileges
-Write-Host "📋 Collecting services..." -ForegroundColor Yellow
+Write-Host "[+] Collecting services..." -ForegroundColor Yellow
 try {
     $services = Get-CimInstance Win32_Service | Where-Object { 
         $_.StartName -match "LocalSystem|SYSTEM|LocalService|NetworkService" 
@@ -178,22 +186,23 @@ try {
         $signed = Test-FileSigned -Path $svc.PathName.Trim('"').Split(' ')[0]
         
         $snapshot.services += @{
-            name = $svc.Name
+            name         = $svc.Name
             display_name = $svc.DisplayName
-            run_as = $svc.StartName
-            binary_path = $svc.PathName
+            run_as       = $svc.StartName
+            binary_path  = $svc.PathName
             startup_type = $svc.StartMode
-            state = $svc.State
-            signed = $signed
+            state        = $svc.State
+            signed       = $signed
         }
     }
-    Write-Host "   ✓ Found $($snapshot.services.Count) elevated services" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Error collecting services: $_" -ForegroundColor Red
+    Write-Host "    [OK] Found $($snapshot.services.Count) elevated services" -ForegroundColor Green
+}
+catch {
+    Write-Host "    [ERROR] Error collecting services: $_" -ForegroundColor Red
 }
 
 # 5. Collect Startup Items
-Write-Host "📋 Collecting startup items..." -ForegroundColor Yellow
+Write-Host "[+] Collecting startup items..." -ForegroundColor Yellow
 try {
     # Registry Run keys
     $runKeys = @(
@@ -208,9 +217,9 @@ try {
             $items = Get-ItemProperty -Path $key -ErrorAction SilentlyContinue
             $items.PSObject.Properties | Where-Object { $_.Name -notmatch "^PS" } | ForEach-Object {
                 $snapshot.startup_items += @{
-                    location = $key
-                    name = $_.Name
-                    command = $_.Value
+                    location  = $key
+                    name      = $_.Name
+                    command   = $_.Value
                     privilege = if ($key -match "HKLM") { "System" } else { "User" }
                 }
             }
@@ -227,25 +236,27 @@ try {
         if (Test-Path $folder) {
             Get-ChildItem -Path $folder -File | ForEach-Object {
                 $snapshot.startup_items += @{
-                    location = $folder
-                    name = $_.Name
-                    command = $_.FullName
+                    location  = $folder
+                    name      = $_.Name
+                    command   = $_.FullName
                     privilege = if ($folder -match "ProgramData") { "System" } else { "User" }
                 }
             }
         }
     }
     
-    Write-Host "   ✓ Found $($snapshot.startup_items.Count) startup items" -ForegroundColor Green
-} catch {
-    Write-Host "   ✗ Error collecting startup items: $_" -ForegroundColor Red
+    Write-Host "    [OK] Found $($snapshot.startup_items.Count) startup items" -ForegroundColor Green
+}
+catch {
+    Write-Host "    [ERROR] Error collecting startup items: $_" -ForegroundColor Red
 }
 
 # Save snapshot to file
 $outputFile = Join-Path $OutputPath "$($snapshotId).json"
 $latestFile = Join-Path $OutputPath "latest.json"
 
-Write-Host "`n💾 Saving snapshot..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "[*] Saving snapshot..." -ForegroundColor Yellow
 try {
     # Ensure directory exists
     if (-not (Test-Path $OutputPath)) {
@@ -257,28 +268,31 @@ try {
     
     # Save to timestamped file
     $jsonContent | Out-File -FilePath $outputFile -Encoding UTF8 -Force
-    Write-Host "   ✓ Saved to: $outputFile" -ForegroundColor Green
+    Write-Host "    [OK] Saved to: $outputFile" -ForegroundColor Green
     
     # Also save as latest for easy access
     $jsonContent | Out-File -FilePath $latestFile -Encoding UTF8 -Force
-    Write-Host "   ✓ Updated: $latestFile" -ForegroundColor Green
+    Write-Host "    [OK] Updated: $latestFile" -ForegroundColor Green
     
     # Log operation
     $logFile = ".\logs\audit.log"
     $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Snapshot created: $snapshotId"
     Add-Content -Path $logFile -Value $logEntry -ErrorAction SilentlyContinue
     
-} catch {
-    Write-Host "   ✗ Error saving snapshot: $_" -ForegroundColor Red
+}
+catch {
+    Write-Host "    [ERROR] Error saving snapshot: $_" -ForegroundColor Red
     exit 1
 }
 
 # Summary
-Write-Host "`n📊 Snapshot Summary:" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "   Admin Users:        $($snapshot.admin_users.Count)"
-Write-Host "   Elevated Processes: $($snapshot.elevated_processes.Count)"
-Write-Host "   Scheduled Tasks:    $($snapshot.scheduled_tasks.Count)"
-Write-Host "   Services:           $($snapshot.services.Count)"
-Write-Host "   Startup Items:      $($snapshot.startup_items.Count)"
-Write-Host "`n✅ Snapshot collection complete!" -ForegroundColor Green
+Write-Host ""
+Write-Host "[*] Snapshot Summary:" -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "    Admin Users:        $($snapshot.admin_users.Count)"
+Write-Host "    Elevated Processes: $($snapshot.elevated_processes.Count)"
+Write-Host "    Scheduled Tasks:    $($snapshot.scheduled_tasks.Count)"
+Write-Host "    Services:           $($snapshot.services.Count)"
+Write-Host "    Startup Items:      $($snapshot.startup_items.Count)"
+Write-Host ""
+Write-Host "[SUCCESS] Snapshot collection complete!" -ForegroundColor Green

@@ -13,16 +13,8 @@ $ErrorActionPreference = "Continue"
 Write-Host "🔐 Privilege Drift - Snapshot Comparison" -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 
-# Load configuration
-$policiesPath = ".\config\policies.json"
+# Load whitelist configuration
 $whitelistPath = ".\config\whitelist.json"
-
-if (-not (Test-Path $policiesPath)) {
-    Write-Host "❌ Policies file not found: $policiesPath" -ForegroundColor Red
-    exit 1
-}
-
-$policies = Get-Content $policiesPath | ConvertFrom-Json
 $whitelist = @{}
 if (Test-Path $whitelistPath) {
     $whitelist = Get-Content $whitelistPath | ConvertFrom-Json
@@ -67,6 +59,18 @@ if ($PreviousSnapshot -and (Test-Path $PreviousSnapshot)) {
     Write-Host "📂 Loading previous snapshot..." -ForegroundColor Yellow
     $previous = Get-Content $PreviousSnapshot | ConvertFrom-Json
     Write-Host "   ✓ Loaded: $($previous.snapshot_id)" -ForegroundColor Green
+}
+else {
+    # If we still don't have a previous snapshot, use empty baseline
+    if (-not $previous) {
+        $previous = @{
+            admin_users        = @()
+            elevated_processes = @()
+            scheduled_tasks    = @()
+            services           = @()
+            startup_items      = @()
+        }
+    }
 }
 
 Write-Host "`n🔍 Analyzing changes...`n" -ForegroundColor Yellow
@@ -365,7 +369,7 @@ Write-Host "   🔴 Critical: $($changes.risk_assessment.critical.Count)" -Foreg
 Write-Host "   🟠 High:     $($changes.risk_assessment.high.Count)" -ForegroundColor Yellow
 Write-Host "   🟡 Medium:   $($changes.risk_assessment.medium.Count)" -ForegroundColor Yellow
 Write-Host "   🟢 Low:      $($changes.risk_assessment.low.Count)" -ForegroundColor Green
-Write-Host "`n✅ Comparison complete!" -ForegroundColor Green
+Write-Host "`nComparison complete!" -ForegroundColor Green
 
 # Return the comparison object for use by other scripts
 return $changes

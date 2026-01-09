@@ -143,7 +143,6 @@ Write-Host "`n📈 Applying multipliers..." -ForegroundColor Yellow
 
 # Long-lived privileges (older than configured threshold)
 $thresholdDays = $policies.multipliers.long_lived_privileges_days
-$longLivedCount = 0
 
 # Check how long ago the first snapshot was taken
 $snapshots = Get-ChildItem -Path ".\snapshots\*.json" | 
@@ -289,13 +288,12 @@ try {
     # Also save as latest
     $latestFile = ".\reports\risk-score-latest.json"
     $details | ConvertTo-Json -Depth 10 | Out-File -FilePath $latestFile -Encoding UTF8 -Force
-    
 }
 catch {
-    Write-Host "   ✗ Error saving risk score: $_" -ForegroundColor Red
+    Write-Host "   X Error saving risk score: $_" -ForegroundColor Red
 }
 
-Write-Host "`n✅ Risk calculation complete!" -ForegroundColor Green
+Write-Host "`nRisk calculation complete!" -ForegroundColor Green
 
 # Return the score details
 return $details
