@@ -1,0 +1,45 @@
+{
+  "version": "0.1.0",
+  "snapshot_retention_days": 90,
+  "risk_thresholds": {
+    "good": 30,
+    "review": 60,
+    "high_risk": 85,
+    "critical": 100
+  },
+  "scoring_weights": {
+    "admin_users": 5,
+    "elevated_services": 3,
+    "startup_items_as_admin": 4,
+    "tasks_as_system": 6,
+    "unsigned_elevated": 10,
+    "suspicious_timing": 8
+  },
+  "multipliers": {
+    "long_lived_privileges_days": 90,
+    "long_lived_multiplier": 1.5,
+    "unusual_time_multiplier": 1.3,
+    "hidden_privileges_multiplier": 2.0,
+    "unsigned_executable_multiplier": 1.8
+  },
+  "time_bound_defaults": {
+    "default_duration_days": 7,
+    "warn_before_expiration_days": 1,
+    "auto_extend_if_used_daily": false,
+    "require_justification_for_renewal": true
+  },
+  "suspicious_hours": {
+    "start": 0,
+    "end": 5
+  },
+  "notification": {
+    "enabled": true,
+    "email_enabled": false,
+    "email_recipients": [],
+    "desktop_notifications": true
+  },
+  "auto_revoke": {
+    "enabled": false,
+    "require_approval": true
+  }
+}

@@ -1,0 +1,53 @@
+{
+    "version": "0.1.0",
+    "description": "Whitelist of known-good privileges that should not trigger alerts",
+    "admin_users": [
+        "Administrator",
+        "SYSTEM",
+        "LOCAL SERVICE",
+        "NETWORK SERVICE"
+    ],
+    "services": [
+        {
+            "name": "wuauserv",
+            "display_name": "Windows Update",
+            "run_as": "LocalSystem",
+            "reason": "Required Windows service"
+        },
+        {
+            "name": "TrustedInstaller",
+            "display_name": "Windows Modules Installer",
+            "run_as": "LocalSystem",
+            "reason": "Required Windows service"
+        },
+        {
+            "name": "BITS",
+            "display_name": "Background Intelligent Transfer Service",
+            "run_as": "LocalSystem",
+            "reason": "Required Windows service"
+        }
+    ],
+    "scheduled_tasks": [
+        {
+            "path": "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+            "reason": "Windows Update tasks"
+        },
+        {
+            "path": "\\Microsoft\\Windows\\Defender\\",
+            "reason": "Windows Defender tasks"
+        }
+    ],
+    "startup_items": [],
+    "processes": [
+        {
+            "name": "svchost.exe",
+            "path": "C:\\Windows\\System32\\svchost.exe",
+            "reason": "Windows service host"
+        },
+        {
+            "name": "MsMpEng.exe",
+            "path": "C:\\Program Files\\Windows Defender\\MsMpEng.exe",
+            "reason": "Windows Defender"
+        }
+    ]
+}
