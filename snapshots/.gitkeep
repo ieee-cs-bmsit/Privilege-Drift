@@ -1,0 +1,2 @@
+# This directory contains daily privilege snapshots
+# Each snapshot is a JSON file containing the system's privilege state

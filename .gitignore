@@ -1,0 +1,33 @@
+# Privilege Drift - .gitignore
+
+# Snapshots (contains sensitive system information)
+snapshots/*.json
+!snapshots/.gitkeep
+
+# Reports (may contain sensitive data)
+reports/*.json
+reports/*.txt
+reports/*.html
+!reports/.gitkeep
+
+# Logs
+logs/*.log
+!logs/.gitkeep
+
+# Windows thumbnail cache
+Thumbs.db
+
+# Windows folder config file
+Desktop.ini
+
+# PowerShell execution policy
+*.ps1.bak
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# User-specific configuration (preserve template)
+config/policies.json.user
+config/whitelist.json.user
