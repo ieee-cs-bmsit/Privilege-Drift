@@ -1,4 +1,4 @@
-# Privilege Drift - Snapshot Comparison Script
+﻿# Privilege Drift - Snapshot Comparison Script
 # Compares two snapshots and detects privilege drift
 
 param(
@@ -10,8 +10,8 @@ param(
 
 $ErrorActionPreference = "Continue"
 
-Write-Host "Privilege Drift - Snapshot Comparison" -ForegroundColor Cyan
-Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "🔐 Privilege Drift - Snapshot Comparison" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 
 # Load whitelist configuration
 $whitelistPath = ".\config\whitelist.json"
@@ -22,13 +22,13 @@ if (Test-Path $whitelistPath) {
 
 # Load current snapshot
 if (-not (Test-Path $CurrentSnapshot)) {
-    Write-Host "[ERROR] Current snapshot not found: $CurrentSnapshot" -ForegroundColor Red
+    Write-Host "❌ Current snapshot not found: $CurrentSnapshot" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "[*] Loading current snapshot..." -ForegroundColor Yellow
+Write-Host "📂 Loading current snapshot..." -ForegroundColor Yellow
 $current = Get-Content $CurrentSnapshot | ConvertFrom-Json
-Write-Host "    [OK] Loaded: $($current.snapshot_id)" -ForegroundColor Green
+Write-Host "   ✓ Loaded: $($current.snapshot_id)" -ForegroundColor Green
 
 # Find previous snapshot
 if (-not $PreviousSnapshot) {
@@ -44,7 +44,7 @@ if (-not $PreviousSnapshot) {
         $PreviousSnapshot = $snapshots[0].FullName
     }
     else {
-        Write-Host "[WARNING] No previous snapshot found. This will be treated as the baseline." -ForegroundColor Yellow
+        Write-Host "⚠️  No previous snapshot found. This will be treated as the baseline." -ForegroundColor Yellow
         $previous = @{
             admin_users        = @()
             elevated_processes = @()
@@ -56,9 +56,9 @@ if (-not $PreviousSnapshot) {
 }
 
 if ($PreviousSnapshot -and (Test-Path $PreviousSnapshot)) {
-    Write-Host "[*] Loading previous snapshot..." -ForegroundColor Yellow
+    Write-Host "📂 Loading previous snapshot..." -ForegroundColor Yellow
     $previous = Get-Content $PreviousSnapshot | ConvertFrom-Json
-    Write-Host "    [OK] Loaded: $($previous.snapshot_id)" -ForegroundColor Green
+    Write-Host "   ✓ Loaded: $($previous.snapshot_id)" -ForegroundColor Green
 }
 else {
     # If we still don't have a previous snapshot, use empty baseline
@@ -73,7 +73,7 @@ else {
     }
 }
 
-Write-Host "`n[*] Analyzing changes...`n" -ForegroundColor Yellow
+Write-Host "`n🔍 Analyzing changes...`n" -ForegroundColor Yellow
 
 # Initialize changes tracking
 $changes = @{
@@ -183,7 +183,7 @@ function Get-RiskLevel {
 }
 
 # Compare Admin Users
-Write-Host "[*] Comparing admin users..." -ForegroundColor Cyan
+Write-Host "👥 Comparing admin users..." -ForegroundColor Cyan
 $prevUsernames = $previous.admin_users | ForEach-Object { $_.username }
 $currUsernames = $current.admin_users | ForEach-Object { $_.username }
 
@@ -206,10 +206,10 @@ foreach ($user in $previous.admin_users) {
     }
 }
 
-Write-Host "    [OK] Found $($changes.admin_users.added.Count) new, $($changes.admin_users.removed.Count) removed" -ForegroundColor Green
+Write-Host "   ✓ Found $($changes.admin_users.added.Count) new, $($changes.admin_users.removed.Count) removed" -ForegroundColor Green
 
 # Compare Elevated Processes
-Write-Host "[*] Comparing elevated processes..." -ForegroundColor Cyan
+Write-Host "⚡ Comparing elevated processes..." -ForegroundColor Cyan
 $prevProcPaths = $previous.elevated_processes | ForEach-Object { $_.path }
 $currProcPaths = $current.elevated_processes | ForEach-Object { $_.path }
 
@@ -234,10 +234,10 @@ foreach ($proc in $previous.elevated_processes) {
     }
 }
 
-Write-Host "    [OK] Found $($changes.elevated_processes.added.Count) new, $($changes.elevated_processes.removed.Count) removed" -ForegroundColor Green
+Write-Host "   ✓ Found $($changes.elevated_processes.added.Count) new, $($changes.elevated_processes.removed.Count) removed" -ForegroundColor Green
 
 # Compare Scheduled Tasks
-Write-Host "[*] Comparing scheduled tasks..." -ForegroundColor Cyan
+Write-Host "📅 Comparing scheduled tasks..." -ForegroundColor Cyan
 $prevTaskNames = $previous.scheduled_tasks | ForEach-Object { $_.path + $_.name }
 $currTaskNames = $current.scheduled_tasks | ForEach-Object { $_.path + $_.name }
 
@@ -264,7 +264,7 @@ foreach ($task in $current.scheduled_tasks) {
             
             $desc = "New scheduled task: $($task.name) (runs as $($task.run_as))"
             if ($isSuspicious) {
-                $desc += " [WARNING] Created during suspicious hours"
+                $desc += " ⚠️ Created during suspicious hours"
             }
             
             $changes.risk_assessment.$risk += @{
@@ -284,10 +284,10 @@ foreach ($task in $previous.scheduled_tasks) {
     }
 }
 
-Write-Host "    [OK] Found $($changes.scheduled_tasks.added.Count) new, $($changes.scheduled_tasks.removed.Count) removed" -ForegroundColor Green
+Write-Host "   ✓ Found $($changes.scheduled_tasks.added.Count) new, $($changes.scheduled_tasks.removed.Count) removed" -ForegroundColor Green
 
 # Compare Services
-Write-Host "[*] Comparing services..." -ForegroundColor Cyan
+Write-Host "⚙️  Comparing services..." -ForegroundColor Cyan
 $prevSvcNames = $previous.services | ForEach-Object { $_.name }
 $currSvcNames = $current.services | ForEach-Object { $_.name }
 
@@ -312,10 +312,10 @@ foreach ($svc in $previous.services) {
     }
 }
 
-Write-Host "    [OK] Found $($changes.services.added.Count) new, $($changes.services.removed.Count) removed" -ForegroundColor Green
+Write-Host "   ✓ Found $($changes.services.added.Count) new, $($changes.services.removed.Count) removed" -ForegroundColor Green
 
 # Compare Startup Items
-Write-Host "[*] Comparing startup items..." -ForegroundColor Cyan
+Write-Host "🚀 Comparing startup items..." -ForegroundColor Cyan
 $prevStartupCmds = $previous.startup_items | ForEach-Object { $_.command }
 $currStartupCmds = $current.startup_items | ForEach-Object { $_.command }
 
@@ -338,11 +338,11 @@ foreach ($item in $previous.startup_items) {
     }
 }
 
-Write-Host "    [OK] Found $($changes.startup_items.added.Count) new, $($changes.startup_items.removed.Count) removed" -ForegroundColor Green
+Write-Host "   ✓ Found $($changes.startup_items.added.Count) new, $($changes.startup_items.removed.Count) removed" -ForegroundColor Green
 
 # Save comparison results
 $outputFile = Join-Path $OutputPath "comparison-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"
-Write-Host "`n[*] Saving comparison results..." -ForegroundColor Yellow
+Write-Host "`n💾 Saving comparison results..." -ForegroundColor Yellow
 
 try {
     if (-not (Test-Path $OutputPath)) {
@@ -350,7 +350,7 @@ try {
     }
     
     $changes | ConvertTo-Json -Depth 10 | Out-File -FilePath $outputFile -Encoding UTF8 -Force
-    Write-Host "    [OK] Saved to: $outputFile" -ForegroundColor Green
+    Write-Host "   ✓ Saved to: $outputFile" -ForegroundColor Green
     
     # Also save as latest
     $latestFile = Join-Path $OutputPath "comparison-latest.json"
@@ -358,18 +358,18 @@ try {
     
 }
 catch {
-    Write-Host "    [ERROR] Error saving comparison: $_" -ForegroundColor Red
+    Write-Host "   ✗ Error saving comparison: $_" -ForegroundColor Red
     exit 1
 }
 
 # Summary
-Write-Host "`n[*] Change Summary:" -ForegroundColor Cyan
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "    Critical: $($changes.risk_assessment.critical.Count)" -ForegroundColor Red
-Write-Host "    High:     $($changes.risk_assessment.high.Count)" -ForegroundColor Yellow
-Write-Host "    Medium:   $($changes.risk_assessment.medium.Count)" -ForegroundColor Yellow
-Write-Host "    Low:      $($changes.risk_assessment.low.Count)" -ForegroundColor Green
-Write-Host "`n[SUCCESS] Comparison complete!" -ForegroundColor Green
+Write-Host "`n📊 Change Summary:" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "   🔴 Critical: $($changes.risk_assessment.critical.Count)" -ForegroundColor Red
+Write-Host "   🟠 High:     $($changes.risk_assessment.high.Count)" -ForegroundColor Yellow
+Write-Host "   🟡 Medium:   $($changes.risk_assessment.medium.Count)" -ForegroundColor Yellow
+Write-Host "   🟢 Low:      $($changes.risk_assessment.low.Count)" -ForegroundColor Green
+Write-Host "`nComparison complete!" -ForegroundColor Green
 
 # Return the comparison object for use by other scripts
 return $changes

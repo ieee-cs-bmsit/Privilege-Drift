@@ -46,16 +46,61 @@ function Get-SafeFileHash {
 }
 
 # Function to check if file is signed
+# Function to check if file is signed
 function Test-FileSigned {
-    param([string]$Path)
+    param(
+        [string]$Path,
+        [switch]$Detailed  # Optional: return detailed signing info
+    )
+    
+    # Handle empty or null paths
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $false
+    }
+    
+    # Clean path (remove quotes, extract executable from arguments)
+    $cleanPath = $Path.Trim('"').Trim()
+    
+    # Extract just the executable path (before any arguments)
+    if ($cleanPath -match '^([A-Za-z]:\\[^/|<>]+\.exe)') {
+        $cleanPath = $matches[1]
+    }
+    elseif ($cleanPath -match '^([A-Za-z]:\\[^/|<>]+\.dll)') {
+        $cleanPath = $matches[1]
+    }
+    else {
+        # Try splitting on space for simple "path.exe -args" format
+        $cleanPath = $cleanPath.Split(' ')[0]
+    }
+    
     try {
-        if (Test-Path $Path) {
-            $sig = Get-AuthenticodeSignature -FilePath $Path -ErrorAction SilentlyContinue
+        # Check if file exists using LiteralPath
+        if (-not (Test-Path -LiteralPath $cleanPath -ErrorAction SilentlyContinue)) {
+            return $false
+        }
+        
+        # Get authenticode signature
+        $sig = Get-AuthenticodeSignature -FilePath $cleanPath -ErrorAction SilentlyContinue
+        
+        if ($Detailed) {
+            # Return detailed information
+            return [PSCustomObject]@{
+                IsSigned               = ($sig.Status -eq 'Valid')
+                Status                 = $sig.Status
+                SignerCertificate      = $sig.SignerCertificate.Subject
+                TimeStamperCertificate = $sig.TimeStamperCertificate.Subject
+                IsOSBinary             = ($sig.IsOSBinary -eq $true)
+            }
+        }
+        else {
+            # Return simple boolean
             return ($sig.Status -eq 'Valid')
         }
     }
-    catch {}
-    return $false
+    catch {
+        # Silently handle any errors
+        return $false
+    }
 }
 
 # 1. Collect Admin Users

@@ -8,13 +8,13 @@ param(
 
 $ErrorActionPreference = "Continue"
 
-Write-Host "🔐 Privilege Drift - Risk Score Calculator" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "Privilege Drift - Risk Score Calculator" -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Cyan
 
 # Load configuration
 $policiesPath = ".\config\policies.json"
 if (-not (Test-Path $policiesPath)) {
-    Write-Host "❌ Policies file not found: $policiesPath" -ForegroundColor Red
+    Write-Host "[ERROR] Policies file not found: $policiesPath" -ForegroundColor Red
     exit 1
 }
 
@@ -22,13 +22,13 @@ $policies = Get-Content $policiesPath | ConvertFrom-Json
 
 # Load snapshot
 if (-not (Test-Path $SnapshotPath)) {
-    Write-Host "❌ Snapshot not found: $SnapshotPath" -ForegroundColor Red
+    Write-Host "[ERROR] Snapshot not found: $SnapshotPath" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "📂 Loading snapshot..." -ForegroundColor Yellow
+Write-Host "[*] Loading snapshot..." -ForegroundColor Yellow
 $snapshot = Get-Content $SnapshotPath | ConvertFrom-Json
-Write-Host "   ✓ Loaded: $($snapshot.snapshot_id)`n" -ForegroundColor Green
+Write-Host "    [OK] Loaded: $($snapshot.snapshot_id)`n" -ForegroundColor Green
 
 # Initialize score
 $baseScore = 0
@@ -44,7 +44,7 @@ $details = @{
 }
 
 # Count elevated entities (excluding whitelisted ones)
-Write-Host "📊 Calculating base score..." -ForegroundColor Yellow
+Write-Host "[*] Calculating base score..." -ForegroundColor Yellow
 
 # Admin users (exclude built-in Administrator, SYSTEM, etc.)
 $adminUsers = $snapshot.admin_users | Where-Object { 
@@ -139,7 +139,7 @@ Write-Host "   • Suspicious timing tasks: $suspiciousTasks × $($policies.scor
 Write-Host "`n   Base Score: $baseScore" -ForegroundColor Cyan
 
 # Apply multipliers
-Write-Host "`n📈 Applying multipliers..." -ForegroundColor Yellow
+Write-Host "`n[*] Applying multipliers..." -ForegroundColor Yellow
 
 # Long-lived privileges (older than configured threshold)
 $thresholdDays = $policies.multipliers.long_lived_privileges_days
@@ -190,7 +190,7 @@ function Get-RiskInterpretation {
         return @{
             level       = "GOOD"
             color       = "Green"
-            emoji       = "🟢"
+            emoji       = "  "
             description = "Normal privilege baseline"
         }
     }
@@ -198,7 +198,7 @@ function Get-RiskInterpretation {
         return @{
             level       = "REVIEW"
             color       = "Yellow"
-            emoji       = "🟡"
+            emoji       = "  "
             description = "Some privileges need attention"
         }
     }
@@ -206,7 +206,7 @@ function Get-RiskInterpretation {
         return @{
             level       = "HIGH RISK"
             color       = "Red"
-            emoji       = "🔴"
+            emoji       = "  "
             description = "Immediate review recommended"
         }
     }
@@ -214,7 +214,7 @@ function Get-RiskInterpretation {
         return @{
             level       = "CRITICAL"
             color       = "Red"
-            emoji       = "🔴"
+            emoji       = "  "
             description = "Serious privilege drift detected"
         }
     }
@@ -225,9 +225,9 @@ $details.risk_level = $interpretation.level
 $details.description = $interpretation.description
 
 # Display results
-Write-Host "`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "📊 RISK SCORE RESULTS" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "`n==========================================" -ForegroundColor Cyan
+Write-Host "[*] RISK SCORE RESULTS" -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "   Score: $finalScore/100" -ForegroundColor $interpretation.color
 Write-Host "   Level: $($interpretation.emoji) $($interpretation.level)" -ForegroundColor $interpretation.color
@@ -238,7 +238,7 @@ Write-Host ""
 $barLength = 40
 $filledLength = [int](($finalScore / 100) * $barLength)
 $emptyLength = $barLength - $filledLength
-$bar = "█" * $filledLength + "░" * $emptyLength
+$bar = "#" * $filledLength + "-" * $emptyLength
 
 $gaugeColor = switch -Regex ($interpretation.level) {
     "GOOD" { "Green" }
@@ -251,23 +251,23 @@ Write-Host ""
 
 # Recommendations
 if ($finalScore -gt $policies.risk_thresholds.good) {
-    Write-Host "💡 RECOMMENDATIONS:" -ForegroundColor Cyan
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+    Write-Host "[*] RECOMMENDATIONS:" -ForegroundColor Cyan
+    Write-Host "==========================================" -ForegroundColor Cyan
     
     if ($adminUsers.Count -gt 2) {
-        Write-Host "   • Review $($adminUsers.Count) admin users - consider reducing elevated accounts" -ForegroundColor Yellow
+        Write-Host "    * Review $($adminUsers.Count) admin users - consider reducing elevated accounts" -ForegroundColor Yellow
     }
     
     if ($unsignedElevated.Count -gt 0) {
-        Write-Host "   • $($unsignedElevated.Count) unsigned processes running elevated - HIGH RISK" -ForegroundColor Red
+        Write-Host "    * $($unsignedElevated.Count) unsigned processes running elevated - HIGH RISK" -ForegroundColor Red
     }
     
     if ($suspiciousTasks -gt 0) {
-        Write-Host "   • $suspiciousTasks task(s) created during suspicious hours (12 AM - 5 AM)" -ForegroundColor Red
+        Write-Host "    * $suspiciousTasks task(s) created during suspicious hours (12 AM - 5 AM)" -ForegroundColor Red
     }
     
     if ($systemTasks.Count -gt 10) {
-        Write-Host "   • $($systemTasks.Count) tasks running as SYSTEM - review necessity" -ForegroundColor Yellow
+        Write-Host "    * $($systemTasks.Count) tasks running as SYSTEM - review necessity" -ForegroundColor Yellow
     }
     
     Write-Host ""
@@ -275,7 +275,7 @@ if ($finalScore -gt $policies.risk_thresholds.good) {
 
 # Save risk score
 $outputFile = ".\reports\risk-score-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"
-Write-Host "💾 Saving risk score..." -ForegroundColor Yellow
+Write-Host "[*] Saving risk score..." -ForegroundColor Yellow
 
 try {
     if (-not (Test-Path ".\reports")) {
@@ -283,7 +283,7 @@ try {
     }
     
     $details | ConvertTo-Json -Depth 10 | Out-File -FilePath $outputFile -Encoding UTF8 -Force
-    Write-Host "   ✓ Saved to: $outputFile" -ForegroundColor Green
+    Write-Host "    [OK] Saved to: $outputFile" -ForegroundColor Green
     
     # Also save as latest
     $latestFile = ".\reports\risk-score-latest.json"
@@ -293,7 +293,7 @@ catch {
     Write-Host "   X Error saving risk score: $_" -ForegroundColor Red
 }
 
-Write-Host "`nRisk calculation complete!" -ForegroundColor Green
+Write-Host "`n[SUCCESS] Risk calculation complete!" -ForegroundColor Green
 
 # Return the score details
 return $details

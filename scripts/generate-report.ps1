@@ -10,37 +10,37 @@ param(
 
 $ErrorActionPreference = "Continue"
 
-Write-Host "🔐 Privilege Drift - Report Generator" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "Privilege Drift - Report Generator" -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Cyan
 
 # Load comparison data
 $comparison = $null
 if (Test-Path $ComparisonPath) {
-    Write-Host "📂 Loading comparison data..." -ForegroundColor Yellow
+    Write-Host "[*] Loading comparison data..." -ForegroundColor Yellow
     $comparison = Get-Content $ComparisonPath | ConvertFrom-Json
-    Write-Host "   ✓ Loaded comparison" -ForegroundColor Green
+    Write-Host "    [OK] Loaded comparison" -ForegroundColor Green
 }
 else {
-    Write-Host "⚠️  No comparison data found. Generating snapshot-only report." -ForegroundColor Yellow
+    Write-Host "[WARNING] No comparison data found. Generating snapshot-only report." -ForegroundColor Yellow
 }
 
 # Load risk score
 $riskScore = $null
 if (Test-Path $RiskScorePath) {
-    Write-Host "📂 Loading risk score..." -ForegroundColor Yellow
+    Write-Host "[*] Loading risk score..." -ForegroundColor Yellow
     $riskScore = Get-Content $RiskScorePath | ConvertFrom-Json
-    Write-Host "   ✓ Loaded risk score" -ForegroundColor Green
+    Write-Host "    [OK] Loaded risk score" -ForegroundColor Green
 }
 else {
-    Write-Host "⚠️  No risk score found. Run calculate-risk.ps1 first." -ForegroundColor Yellow
+    Write-Host "[WARNING] No risk score found. Run calculate-risk.ps1 first." -ForegroundColor Yellow
 }
 
 # Generate report
 $reportDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $reportContent = @"
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃                    🔐 PRIVILEGE DRIFT REPORT                     ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+======================================================================
+                   PRIVILEGE DRIFT REPORT
+======================================================================
 
 Generated: $reportDate
 Hostname: $env:COMPUTERNAME
@@ -50,13 +50,15 @@ Hostname: $env:COMPUTERNAME
 # Add risk score section
 if ($riskScore) {
     $scoreEmoji = switch -Regex ($riskScore.risk_level) {
-        "GOOD" { "🟢" }
-        "REVIEW" { "🟡" }
-        "HIGH RISK" { "🟠" }
-        "CRITICAL" { "🔴" }
-        default { "⚪" }
+        "GOOD" { "[OK]" }
+        "REVIEW" { "[!!]" }
+        "HIGH RISK" { "[!!]" }
+        "CRITICAL" { "[!!]" }
+        default { "[??]" }
     }
     
+}   
+
     $reportContent += @"
 ═══════════════════════════════════════════════════════════════════
                          RISK ASSESSMENT
@@ -71,25 +73,25 @@ $($riskScore.description)
     # Add breakdown
     if ($riskScore.breakdown) {
         $reportContent += "SCORE BREAKDOWN:`n"
-        $reportContent += "───────────────────────────────────────────────────────────────────`n"
+        $reportContent += "----------------------------------------------------------------------`n"
         
         if ($riskScore.breakdown.admin_users) {
-            $reportContent += "  • Admin Users:          $($riskScore.breakdown.admin_users.count) users × $($riskScore.breakdown.admin_users.weight) = $($riskScore.breakdown.admin_users.score) points`n"
+            $reportContent += "  * Admin Users:          $($riskScore.breakdown.admin_users.count) users x $($riskScore.breakdown.admin_users.weight) = $($riskScore.breakdown.admin_users.score) points`n"
         }
         if ($riskScore.breakdown.elevated_services) {
-            $reportContent += "  • Elevated Services:    $($riskScore.breakdown.elevated_services.count) services × $($riskScore.breakdown.elevated_services.weight) = $($riskScore.breakdown.elevated_services.score) points`n"
+            $reportContent += "  * Elevated Services:    $($riskScore.breakdown.elevated_services.count) services x $($riskScore.breakdown.elevated_services.weight) = $($riskScore.breakdown.elevated_services.score) points`n"
         }
         if ($riskScore.breakdown.startup_items) {
-            $reportContent += "  • Admin Startup Items:  $($riskScore.breakdown.startup_items.count) items × $($riskScore.breakdown.startup_items.weight) = $($riskScore.breakdown.startup_items.score) points`n"
+            $reportContent += "  * Admin Startup Items:  $($riskScore.breakdown.startup_items.count) items x $($riskScore.breakdown.startup_items.weight) = $($riskScore.breakdown.startup_items.score) points`n"
         }
         if ($riskScore.breakdown.system_tasks) {
-            $reportContent += "  • SYSTEM Tasks:         $($riskScore.breakdown.system_tasks.count) tasks × $($riskScore.breakdown.system_tasks.weight) = $($riskScore.breakdown.system_tasks.score) points`n"
+            $reportContent += "  * SYSTEM Tasks:         $($riskScore.breakdown.system_tasks.count) tasks x $($riskScore.breakdown.system_tasks.weight) = $($riskScore.breakdown.system_tasks.score) points`n"
         }
         if ($riskScore.breakdown.unsigned_elevated) {
-            $reportContent += "  • Unsigned Elevated:    $($riskScore.breakdown.unsigned_elevated.count) processes × $($riskScore.breakdown.unsigned_elevated.weight) = $($riskScore.breakdown.unsigned_elevated.score) points`n"
+            $reportContent += "  * Unsigned Elevated:    $($riskScore.breakdown.unsigned_elevated.count) processes x $($riskScore.breakdown.unsigned_elevated.weight) = $($riskScore.breakdown.unsigned_elevated.score) points`n"
         }
         if ($riskScore.breakdown.suspicious_timing) {
-            $reportContent += "  • Suspicious Timing:    $($riskScore.breakdown.suspicious_timing.count) tasks × $($riskScore.breakdown.suspicious_timing.weight) = $($riskScore.breakdown.suspicious_timing.score) points`n"
+            $reportContent += "  * Suspicious Timing:    $($riskScore.breakdown.suspicious_timing.count) tasks x $($riskScore.breakdown.suspicious_timing.weight) = $($riskScore.breakdown.suspicious_timing.score) points`n"
         }
         
         $reportContent += "`n  Base Score: $($riskScore.base_score)`n"
@@ -97,13 +99,13 @@ $($riskScore.description)
         if ($riskScore.multipliers -and $riskScore.multipliers.Count -gt 0) {
             $reportContent += "`n  MULTIPLIERS APPLIED:`n"
             foreach ($mult in $riskScore.multipliers) {
-                $reportContent += "    × $($mult.value) - $($mult.reason)`n"
+                $reportContent += "    x $($mult.value) - $($mult.reason)`n"
             }
         }
         
         $reportContent += "`n"
     }
-}
+
 
 # Add changes section
 if ($comparison) {
@@ -120,19 +122,19 @@ if ($comparison) {
 Comparing: $($comparison.previous_snapshot) → $($comparison.current_snapshot)
 
 Change Summary:
-  🔴 Critical Changes:  $totalCritical
-  🟠 High Risk Changes: $totalHigh
-  🟡 Medium Risk:       $totalMedium
-  🟢 Low Risk:          $totalLow
+  [C] Critical Changes:  $totalCritical
+  [H] High Risk Changes: $totalHigh
+  [M] Medium Risk:       $totalMedium
+  [L] Low Risk:          $totalLow
 
 "@
 
     # Critical changes
     if ($totalCritical -gt 0) {
-        $reportContent += "🔴 CRITICAL RISK CHANGES`n"
-        $reportContent += "───────────────────────────────────────────────────────────────────`n"
+        $reportContent += "[CRITICAL] CRITICAL RISK CHANGES`n"
+        $reportContent += "----------------------------------------------------------------------`n"
         foreach ($change in $comparison.risk_assessment.critical) {
-            $reportContent += "  • [$($change.category)] $($change.description)`n"
+            $reportContent += "  * [$($change.category)] $($change.description)`n"
             if ($change.details.path) {
                 $reportContent += "    Location: $($change.details.path)`n"
             }
@@ -145,15 +147,15 @@ Change Summary:
     
     # High risk changes
     if ($totalHigh -gt 0) {
-        $reportContent += "🟠 HIGH RISK CHANGES`n"
-        $reportContent += "───────────────────────────────────────────────────────────────────`n"
+        $reportContent += "[HIGH] HIGH RISK CHANGES`n"
+        $reportContent += "----------------------------------------------------------------------`n"
         foreach ($change in $comparison.risk_assessment.high) {
-            $reportContent += "  • [$($change.category)] $($change.description)`n"
+            $reportContent += "  * [$($change.category)] $($change.description)`n"
             if ($change.details.path) {
                 $reportContent += "    Location: $($change.details.path)`n"
             }
             if ($change.details.signed -ne $null) {
-                $signed = if ($change.details.signed) { "Yes" } else { "No ⚠️" }
+                $signed = if ($change.details.signed) { "Yes" } else { "No [WARNING]" }
                 $reportContent += "    Digitally Signed: $signed`n"
             }
             $reportContent += "`n"
@@ -162,10 +164,10 @@ Change Summary:
     
     # Medium risk changes
     if ($totalMedium -gt 0) {
-        $reportContent += "🟡 MEDIUM RISK CHANGES`n"
-        $reportContent += "───────────────────────────────────────────────────────────────────`n"
+        $reportContent += "[MEDIUM] MEDIUM RISK CHANGES`n"
+        $reportContent += "----------------------------------------------------------------------`n"
         foreach ($change in $comparison.risk_assessment.medium) {
-            $reportContent += "  • [$($change.category)] $($change.description)`n"
+            $reportContent += "  * [$($change.category)] $($change.description)`n"
             if ($change.details.location) {
                 $reportContent += "    Location: $($change.details.location)`n"
             }
@@ -175,7 +177,7 @@ Change Summary:
     
     # Summary of all changes
     $reportContent += "`nDETAILED CHANGE BREAKDOWN:`n"
-    $reportContent += "───────────────────────────────────────────────────────────────────`n"
+    $reportContent += "----------------------------------------------------------------------`n"
     $reportContent += "  Admin Users:        +$($comparison.admin_users.added.Count) / -$($comparison.admin_users.removed.Count)`n"
     $reportContent += "  Elevated Processes: +$($comparison.elevated_processes.added.Count) / -$($comparison.elevated_processes.removed.Count)`n"
     $reportContent += "  Scheduled Tasks:    +$($comparison.scheduled_tasks.added.Count) / -$($comparison.scheduled_tasks.removed.Count)`n"
@@ -194,29 +196,29 @@ if ($riskScore -and $riskScore.final_score -gt 30) {
 "@
 
     if ($riskScore.breakdown.unsigned_elevated.count -gt 0) {
-        $reportContent += "⚠️  URGENT: $($riskScore.breakdown.unsigned_elevated.count) unsigned process(es) running with elevated privileges`n"
-        $reportContent += "   → Review and remove unnecessary elevated executables`n"
-        $reportContent += "   → Verify legitimacy of unsigned elevated software`n`n"
+        $reportContent += "[WARNING] URGENT: $($riskScore.breakdown.unsigned_elevated.count) unsigned process(es) running with elevated privileges`n"
+        $reportContent += "   -> Review and remove unnecessary elevated executables`n"
+        $reportContent += "   -> Verify legitimacy of unsigned elevated software`n`n"
     }
     
     if ($riskScore.breakdown.admin_users.count -gt 2) {
-        $reportContent += "📌 Review admin accounts: $($riskScore.breakdown.admin_users.count) admin users detected`n"
-        $reportContent += "   → Apply principle of least privilege`n"
-        $reportContent += "   → Remove unnecessary admin accounts`n`n"
+        $reportContent += "[*] Review admin accounts: $($riskScore.breakdown.admin_users.count) admin users detected`n"
+        $reportContent += "   -> Apply principle of least privilege`n"
+        $reportContent += "   -> Remove unnecessary admin accounts`n`n"
     }
     
     if ($riskScore.breakdown.suspicious_timing.count -gt 0) {
-        $reportContent += "🕐 $($riskScore.breakdown.suspicious_timing.count) task(s) created during suspicious hours (12 AM - 5 AM)`n"
-        $reportContent += "   → Investigate these tasks for potential malware`n"
-        $reportContent += "   → Verify their necessity and origin`n`n"
+        $reportContent += "[TIME] $($riskScore.breakdown.suspicious_timing.count) task(s) created during suspicious hours (12 AM - 5 AM)`n"
+        $reportContent += "   -> Investigate these tasks for potential malware`n"
+        $reportContent += "   -> Verify their necessity and origin`n`n"
     }
     
     if ($riskScore.final_score -ge 60) {
-        $reportContent += "💡 General recommendations:`n"
-        $reportContent += "   → Run a full malware scan`n"
-        $reportContent += "   → Review all elevated privileges manually`n"
-        $reportContent += "   → Consider establishing a new security baseline`n"
-        $reportContent += "   → Schedule regular privilege audits`n`n"
+        $reportContent += "[*] General recommendations:`n"
+        $reportContent += "   -> Run a full malware scan`n"
+        $reportContent += "   -> Review all elevated privileges manually`n"
+        $reportContent += "   -> Consider establishing a new security baseline`n"
+        $reportContent += "   -> Schedule regular privilege audits`n`n"
     }
 }
 
@@ -246,21 +248,21 @@ For detailed information, see:
 $textReportFile = Join-Path $OutputPath "drift-report-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt"
 $latestTextFile = Join-Path $OutputPath "drift-report-latest.txt"
 
-Write-Host "`n💾 Saving report..." -ForegroundColor Yellow
+Write-Host "`n[*] Saving report..." -ForegroundColor Yellow
 try {
     if (-not (Test-Path $OutputPath)) {
         New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
     }
     
     $reportContent | Out-File -FilePath $textReportFile -Encoding UTF8 -Force
-    Write-Host "   ✓ Saved text report: $textReportFile" -ForegroundColor Green
+    Write-Host "    [OK] Saved text report: $textReportFile" -ForegroundColor Green
     
     $reportContent | Out-File -FilePath $latestTextFile -Encoding UTF8 -Force
-    Write-Host "   ✓ Updated: $latestTextFile" -ForegroundColor Green
+    Write-Host "    [OK] Updated: $latestTextFile" -ForegroundColor Green
     
 }
 catch {
-    Write-Host "   ✗ Error saving report: $_" -ForegroundColor Red
+    Write-Host "    [ERROR] Error saving report: $_" -ForegroundColor Red
     exit 1
 }
 
@@ -272,5 +274,5 @@ $logFile = ".\logs\audit.log"
 $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Report generated"
 Add-Content -Path $logFile -Value $logEntry -ErrorAction SilentlyContinue
 
-Write-Host "`n✅ Report generation complete!" -ForegroundColor Green
-Write-Host "📄 View report: $latestTextFile`n" -ForegroundColor Cyan
+Write-Host "`n[SUCCESS] Report generation complete!" -ForegroundColor Green
+Write-Host "[*] View report: $latestTextFile`n" -ForegroundColor Cyan
